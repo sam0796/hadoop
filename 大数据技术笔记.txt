@@ -1,0 +1,55 @@
+1、sqoop从mysql(关系型数据库)导入到hdfs:
+	sqoop import --connect jdbc:mysql://192.168.241.131:3306/db1?useSSL=false --username root --password root --table log --columns 'id,user_name,created_at' --m 1 --target-dir '/sqoop/log'
+2、sqoop从mysql(关系型数据库)导入到hive:
+	sqoop import --connect jdbc:mysql://192.168.241.131:3306/db1?useSSL=false --username root --password root --table log --columns 'id,user_name,created_at' --m 1 --hive-import 
+	[--hive-table table_name --hive-overwrite --hive-database --where '条件']
+3、sqoop从mysql(关系型数据库)导入到hive使用query语句:
+	sqoop import --connect jdbc:mysql://192.168.241.131:3306/db1?useSSL=false --username root --password root --query 
+	'select id,user_name,str_to_date(created_at,"%Y-%m-%d") from log where id > 5 and $CONDITIONS' --m 1 --hive-import --hive-table ** --target-dir '/**/**'
+4、sqoop从mysql(关系型数据库)导入到hive分区表中：
+	hive> SET hive.exec.dynamic.partition=true;  
+	hive> SET hive.exec.dynamic.partition.mode=nonstrict; (设置动态分区)
+	hive> SET hive.exec.max.dynamic.partitions.pernode = 1000;
+	1、hive动态分区表创建：hive> create table log_partitions (name string) partitioned by (month string,day string) ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
+	Time taken: 0.303 seconds
+	hive> insert overwrite table log_partitions partition (month,day) select name,substr(date,1,7) as month,substr(date,1,10) as day from log_h;
+	
+	2、ERROR [main]: DataNucleus.Datastore (Log4JLogger.java:error(115)) - An exception was thrown while adding/validating class(es) : Specified key was too long; max key length is 3072 bytes
+com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Specified key was too long; max key length is 3072 bytes(报错)：
+	
+	解决办法：设置mysql元数据库字符集为Latin1(mysql> alter database hive character set latin1;)
+
+
+1、ssh免密码登入：ssh-keygen ->回车...->ls .ssh->touch anthorized_keys->cat **_rsa.pub > authorized_keys ->chmod 600 authorized_keys
+2、spark组件：Spark Core
+			  1）RDDS(弹性分布式数据集)
+			  2）SparkSql(处理结构化数据、常用于企业报表等)
+			  3）SparkStreaming(实时流数据的处理、接收Kafka数据)
+			  4）Mlib(机器学习、支持横向拓展、python只支持单机)
+			  5）Cluster Manager(类似于Hadoop Yarn)
+			  																						-----------------------------------------
+Hadoop生态系统              -----------------------------------------------------					| RDDS   SparkSql    SparkStreaming     |
+						   |ETL工具					BI报表					RDBMS| 					| Mlib     ClusterManager				|
+						   |  Pig 					 hive 					Sqoop|					|										|
+						   |-----------------------------------------------------|					|										|
+						   |					|--------------------------------|					|       								|
+						   |---------------------     MapReduce               |--|----------->Spark |										|
+			   Zookeeper   |         HBase      |--------------------------------|					|---------------------------------------|
+			(协同服务管理) |    												 | Avro				|									    |
+						   |-----------------------------------------------------| 					|				Spark Core				|
+						   |					     HDFS						 |			   		|										|
+						   |			(Hadoop Distributed File System)         |					|										|
+						   -------------------------------------------------------     				-----------------------------------------
+
+Hadoop(HDFS+MapReduce)：解决大规模数据离线批量处理问题，高延迟，无法实时处理；HDFS面向批量访问模式，不是随机访问模式
+Hbase:基于HDFS;
+	  面向半结构化数据存储和处理的高拓展，低写入/查询延迟的系统；如键值数据库、文档数据库和列族数据库；应用于在线式数据分析处理系统中  
+	  不存在表与表关联，只有简单的插入、查询、删除、清空
+	  基于列存储
+HBase访问接口：
+		Native Java API
+		HBase Shell
+		Thrift Gateway
+		Rest
+		Hive--->HiveSql访问
+		Pig --->报表统计分析

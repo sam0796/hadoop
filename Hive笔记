@@ -1,0 +1,9 @@
+hive(HQL):
+	1> nvl(num,0);	//转换成0;
+	2> num is null;	//元素等于空;
+	3> distinct; 	//去重;
+	4> where num='String';
+	5> where num like 's%';	//%匹配任意字符
+	6> where num like '%_%';	//_匹配任意字符
+	7> where num like '%\\_%';	//匹配包含_的字符
+	8> order by num(列,表达式[num*12+num],别名,序号(须设置set hive.groupby.orderby.position.alias=true)) desc(降序);	//排序
